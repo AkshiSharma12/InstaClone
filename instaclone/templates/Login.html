@@ -1,0 +1,45 @@
+{%load staticfiles%}
+<!DOCTYPE html>
+<html lang="en">
+
+    <meta charset="UTF-8">
+    <title>Login</title>
+<style>
+    body {
+      text-align: center;
+
+      background-image: url("{%static "insta.jpg"%}");
+
+      background-size: cover;
+
+      font-family: helvetica;
+    }
+    p {
+      font-size: 22px;
+    }
+    input {
+      border: 0;
+      padding: 10px;
+      font-size: 18px;
+    }
+    input[type="submit"] {
+      background: red;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+<p>Welcome!</p>
+  <h1>Login here</h1>
+
+<form  method="post">
+    {% csrf_token %}
+  <input id="username" type="text" name="username" placeholder="Your username" value={{ username}}><br>
+  <input id="password" type="password" name="password" placeholder="Your password" value={{password}}><br>
+  <input type="submit" value="Login">
+</form>
+</body>
+</head>
+
+
+</html>
