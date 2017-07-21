@@ -6,42 +6,13 @@ from django.contrib.auth.hashers import make_password, check_password
 from datetime import timedelta
 from django.utils import timezone
 from myapp.settings import BASE_DIR
-
-
-# from clarifai.rest import ClarifaiApp
-# import sendgrid
-#
-#
+from clarifai.rest import ClarifaiApp
+from keys import clarify_api_key
+import sendgrid
+from keys import sendgrid_api_key
 from imgurpython import ImgurClient
+from sendgrid.helpers.mail import *
 
-
-
-# client_id_imgur=f7e1fe53d2e71e7
-# client_secret_imgur=4f87a455291c79ff1caec48add2c3c4222116ef0
-# clarify_api_key=f8ceeb90d41443a1b5691289eaaa0849
-# sendgrid_api_key=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
-#
-#
-#
-# app = ClarifaiApp(api_key='{f8ceeb90d41443a1b5691289eaaa0849}')
-# model = app.models.get("Apparel-v1.3")
-# model.predict_by_url(url='')
-#
-#
-#
-# from sendgrid.helpers.mail import *
-#
-# sg = sendgrid.SendGridAPIClient(apikey=('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'))
-# from_email = Email("test@example.com")
-# to_email = Email("test@example.com")
-# subject = "Sending with SendGrid is Fun"
-# content = Content("text/plain", "and easy to do anywhere, even with Python")
-# mail = Mail(from_email, subject, to_email, content)
-# response = sg.client.mail.send.post(request_body=mail.get())
-# print(response.status_code)
-# print(response.body)
-# print(response.headers)
-#
 
 def signup_view(request):
     if request.method == "POST":
@@ -53,6 +24,17 @@ def signup_view(request):
             password = form.cleaned_data['password']
             user = UserModel(name=name, password=make_password(password), email=email, username=username)
             user.save()
+            sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
+            from_email = Email("akshisharma12@gmail.com")
+            to_email = Email(form.cleaned_data['email'])
+            subject = "Welcome to P2P Marketing"
+            content = Content("text/plain", "Welcome onboard. Upload Images up for sale and let us categorise them for you. Have Fun." "Team P2P Marketing")
+            mail = Mail(from_email, subject, to_email, content)
+            response = sg.client.mail.send.post(request_body=mail.get())
+            print(response.status_code)
+            print(response.body)
+            print(response.headers)
+
             return render(request,'Login.html')
     else:
         form = SignUpForm()
@@ -97,13 +79,19 @@ def post_view(request):
             if form.is_valid():
                 image = form.cleaned_data.get('image')
                 caption = form.cleaned_data.get('caption')
-                post = PostModel(user=user, image=image)#, caption=caption)
+                post = PostModel(user=user, image=image, caption=caption)
                 post.save()
 
                 path = str(BASE_DIR + post.image.url)
 
                 client = ImgurClient('f7e1fe53d2e71e7','4f87a455291c79ff1caec48add2c3c4222116ef0' )
                 post.image_url = client.upload_from_path(path,anon=True)['link']
+                post.save()
+                app = ClarifaiApp(api_key=clarify_api_key)
+                model = app.models.get("General-v1.3")
+                response = model.predict_by_url(url=post.image_url)
+                category = response["outputs"][0]["data"]["concepts"][0]["name"]
+                post.category = category
                 post.save()
 
                 return redirect('/Feeds/')
@@ -140,6 +128,16 @@ def like_view(request):
                 existing_like = LikeModel.objects.filter(post_id=post_id, user=user).first()
                 if not existing_like:
                     LikeModel.objects.create(post_id=post_id, user=user)
+                    sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
+                    from_email = Email("akshisharma12@gmail.com")
+                    to_email = Email(form.cleaned_data['email'])
+                    subject = "Like!"
+                    content = Content("text/plain","Your post has a new like.")
+                    mail = Mail(from_email, subject, to_email, content)
+                    response = sg.client.mail.send.post(request_body=mail.get())
+                    print(response.status_code)
+                    print(response.body)
+                    print(response.headers)
                 else:
                     existing_like.delete()
 
@@ -158,6 +156,16 @@ def comment_view(request):
             comment_text = form.cleaned_data.get('comment_text')
             comment = CommentModel.objects.create(user=user, post_id=post_id, comment_text=comment_text)
             comment.save()
+            sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
+            from_email = Email("akshisharma12@gmail.com")
+            to_email = Email(form.cleaned_data['email'])
+            subject = "Comment!"
+            content = Content("text/plain", "Your post has a new comment.")
+            mail = Mail(from_email, subject, to_email, content)
+            response = sg.client.mail.send.post(request_body=mail.get())
+            print(response.status_code)
+            print(response.body)
+            print(response.headers)
             return redirect('/Feeds/')
         else:
             return redirect('/Feeds/')
