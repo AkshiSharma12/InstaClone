@@ -41,7 +41,9 @@ class PostModel(models.Model):
         return CommentModel.objects.filter(post=self).order_by('created_on')
 
 class CategoryModel(models.Model):
-    category=models.CharField(max_length=255)
+    user = models.ForeignKey(UserModel)
+    post = models.ForeignKey(PostModel)
+    category = models.CharField(max_length=255)
 
 class LikeModel(models.Model):
     user = models.ForeignKey(UserModel)

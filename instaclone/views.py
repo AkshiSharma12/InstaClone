@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-from __future__ import unicode_literals
 from django.shortcuts import render, redirect
-from forms import SignUpForm, LoginForm, PostForm, LikeForm, CommentForm
+from forms import SignUpForm, LoginForm, PostForm, LikeForm, CommentForm, CategoryForm
 from models import UserModel, SessionToken, PostModel, LikeModel, CommentModel,CategoryModel
 from django.contrib.auth.hashers import make_password, check_password
 from django.contrib.auth import logout as django_logout
@@ -27,28 +27,38 @@ def signup_view(request):
             name = form.cleaned_data['name']
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
-            user = UserModel(name=name, password=make_password(password), email=email, username=username)
-            user.save()
-            sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
-            from_email = Email("akshisharma12@gmail.com")
-            to_email = Email(form.cleaned_data['email'])
-            subject = "Welcome to P2P Marketing"
-            content = Content("text/plain", "Welcome onboard. Upload Images up for sale and let us categorise them for you. Have Fun." "Team P2P Marketing")
-            mail = Mail(from_email, subject, to_email, content)
-            response = sg.client.mail.send.post(request_body=mail.get())
-            print(response.status_code)
-            print(response.body)
-            print(response.headers)
 
-            return render(request,'Login.html')
+            if set('abcdefghijklmnopqrstuvwxyz').intersection(name) and set('abcdefghijklmnopqrstuvwxyz@_1234567890').intersection(username):
+                if len(username) > 4 and len(password) > 5:
+                    user = UserModel(name=name, password=make_password(password), email=email, username=username)
+                    user.save()
+                    sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
+                    from_email = Email("akshisharma12@gmail.com")
+                    to_email = Email(form.cleaned_data['email'])
+                    subject = "Welcome to P2P Marketing"
+                    content = Content("text/plain", "Welcome onboard. Upload Images up for sale and let us categorise them for you. Have Fun." "Team P2P Marketing")
+                    mail = Mail(from_email, subject, to_email, content)
+                    response = sg.client.mail.send.post(request_body=mail.get())
+                    print(response.status_code)
+                    print(response.body)
+                    print(response.headers)
+                    print ("Sucessfully signed up!")
+                    return render(request,'Login.html')
+            else:
+             print ("Invalid entries!")
+             form=SignUpForm
+             return render(request, 'Signup.html', {'form': form})
+
+        else:
+            print ("Invalid Name/Username")
     else:
         form = SignUpForm()
 
-    return render(request, 'Signup.html', {'form' : form})
+        return render(request, 'Signup.html', {'form' : form})
 
 
 def login_view(request):
-   # response_data = {}
+    response_data = {}
     if request.method == "POST":
         form = LoginForm(request.POST)
         if form.is_valid():
@@ -66,12 +76,12 @@ def login_view(request):
                     return response
                 else:
                     print "Invalid password or username"
-                    #response_data['message'] = 'Incorrect Password! Please try again!'
+                    response_data['message'] = 'Incorrect Password! Please try again!'
 
     elif request.method == 'GET':
         form = LoginForm()
 
-   # response_data['form'] = form
+    response_data['form'] = form
     return render(request, 'Login.html', {'form':form})
 
 
@@ -92,30 +102,36 @@ def post_view(request):
                 client = ImgurClient('f7e1fe53d2e71e7','4f87a455291c79ff1caec48add2c3c4222116ef0' )
                 post.image_url = client.upload_from_path(path,anon=True)['link']
                 post.save()
-                app = ClarifaiApp(api_key=clarify_api_key)
-                model = app.models.get("General-v1.3")
-                response = model.predict_by_url(url=post.image_url)
-                if response["status"]["code"] == 10000:
-                    if response["outputs"]:
-                         if response["outputs"][0]["data"]:
-                             if response["outputs"][0]["data"]["concepts"]:
-                                 for index in range(0,len(response["outputs"][0]["data"]["concepts"])):
-                                     category = CategoryModel(post=post,category_text=response["outputs"][0]["data"]["concepts"][0]["name"])
-                                     category.save()
-                             else:
-                                 print "No concepts List Error"
-                         else:
-                             print "No Data List Error"
-                    else:
-                         print "No Outputs List Error"
-                else:
-                     print "Response Code Error"
-                     return redirect('/Feeds/')
+
+                return redirect('/Feeds/')
+
         else:
             form=PostForm()
         return render(request, 'Post.html',{'form':form})
     else:
         return redirect('/Login/')
+
+def category_view(post):
+                app = ClarifaiApp(api_key=clarify_api_key)
+                model = app.models.get("General-v1.3")
+                response = model.predict_by_url(url=post.image_url)
+                if response["status"]["code"] == 10000:
+                    if response["outputs"]:
+                        if response["outputs"][0]["data"]:
+                            if response["outputs"][0]["data"]["concepts"]:
+                                for index in range(0, len(response["outputs"][0]["data"]["concepts"])):
+                                    category = CategoryModel(post=post, category=response["outputs"][0]["data"]["concepts"][0]["name"])
+                                    category.save()
+                            else:
+                                print "No concepts List Error"
+                        else:
+                            print "No Data List Error"
+                    else:
+                        print "No Outputs List Error"
+                else:
+                    print "Response Code Error"
+
+
 
 def feed_view(request):
     user = check_validation(request)
@@ -143,17 +159,17 @@ def like_view(request):
                 post_id = form.cleaned_data.get('post').id
                 existing_like = LikeModel.objects.filter(post_id=post_id, user=user).first()
                 if not existing_like:
-                    LikeModel.objects.create(post_id=post_id, user=user)
-                    # sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
-                    # from_email = Email("akshisharma12@gmail.com")
-                    # to_email = Email(form.cleaned_data['email'])
-                    # subject = "Like!"
-                    # content = Content("text/plain","Your post has a new like.")
-                    # mail = Mail(from_email, subject, to_email, content)
-                    # response = sg.client.mail.send.post(request_body=mail.get())
-                    # print(response.status_code)
-                    # print(response.body)
-                    # print(response.headers)
+                    like = LikeModel.objects.create(post_id=post_id, user=user)
+                    sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
+                    from_email = Email("akshisharma12@gmail.com")
+                    to_email = Email(like.post.user.email)
+                    subject = "Like!"
+                    content = Content("text/plain","Your post has a new like.")
+                    mail = Mail(from_email, subject, to_email, content)
+                    response = sg.client.mail.send.post(request_body=mail.get())
+                    print(response.status_code)
+                    print(response.body)
+                    print(response.headers)
                 else:
                     existing_like.delete()
 
@@ -172,26 +188,32 @@ def comment_view(request):
             comment_text = form.cleaned_data.get('comment_text')
             comment = CommentModel.objects.create(user=user, post_id=post_id, comment_text=comment_text)
             comment.save()
-            # sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
-            # from_email = Email("akshisharma12@gmail.com")
-            # to_email = Email(form.cleaned_data['email'])
-            # subject = "Comment!"
-            # content = Content("text/plain", "Your post has a new comment.")
-            # mail = Mail(from_email, subject, to_email, content)
-            # response = sg.client.mail.send.post(request_body=mail.get())
-            # print(response.status_code)
-            # print(response.body)
-            # print(response.headers)
+            sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
+            from_email = Email("akshisharma12@gmail.com")
+            to_email = Email(comment.post.user.email)
+            subject = "Comment!"
+            content = Content("text/plain", "Your post has a new comment.")
+            mail = Mail(from_email, subject, to_email, content)
+            response = sg.client.mail.send.post(request_body=mail.get())
+            print(response.status_code)
+            print(response.body)
+            print(response.headers)
             return redirect('/Feeds/')
         else:
             return redirect('/Feeds/')
     else:
         return redirect('/Login/')
 
+def userpost_view(request,user_name):
+    posts=PostModel.objects.all().filter(user_username=user_name)
+    return render(request,'UserPost.html',{'posts':posts,'user_name':user_name})
+
+
 def logout_view(request):
-    django_logout(request)
-    return redirect('/Login/')
-@login_required(login_url='/Login/')
+    request.session.modified = True
+    response = redirect('/Login/')
+    response.delete_cookie(key='session_token')
+    return response
 
 def check_validation(request):
     if request.COOKIES.get('session_token'):
