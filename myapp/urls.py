@@ -1,11 +1,11 @@
 from django.conf.urls import url
 from django.contrib import  admin
-from instaclone.views import signup_view, login_view, feed_view, like_view,comment_view,post_view,logout_view
+from instaclone.views import signup_view, login_view, feed_view, like_view,comment_view,post_view,logout_view,userpost_view
 
 urlpatterns = [
-    url('Post/',post_view),
-    #url('categories',category_view),
+    url(r'^login/feed/(?P<user_name>.+)/$', userpost_view),
     url('/Logout/',logout_view),
+    url('Post/',post_view),
     url('Feeds/',feed_view),
     url('Like/',like_view),
     url('Comment/',comment_view),
