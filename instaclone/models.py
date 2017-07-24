@@ -1,4 +1,6 @@
+# models are creates in django for database structure to store data in database
 from django.db import models
+# uuid provides unique id to different user for there session token
 import uuid
 
 
@@ -19,10 +21,11 @@ class SessionToken(models.Model):
     created_on = models.DateTimeField(auto_now_add=True)
     is_valid = models.BooleanField(default=True)
 
+    # this will create session token which uses uuid which provide unique session token
     def create_token(self):
         self.session_token = uuid.uuid4()
 
-
+# foreign key links on field of another database to existing databse
 class PostModel(models.Model):
     user = models.ForeignKey(UserModel)
     image = models.FileField(upload_to='user_images')
@@ -32,6 +35,7 @@ class PostModel(models.Model):
     updated_on = models.DateTimeField(auto_now=True)
     has_liked = False
 
+    #   @  property allows to use function as a propert
     @property
     def like_count(self):
         return len(LikeModel.objects.filter(post=self))

@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-from __future__ import unicode_literals
 from django.shortcuts import render, redirect
+# from django we import forms that we want
 from forms import SignUpForm, LoginForm, PostForm, LikeForm, CommentForm, CategoryForm
+# importing models
 from models import UserModel, SessionToken, PostModel, LikeModel, CommentModel,CategoryModel
+# hashers library converts passwords to hashcode
 from django.contrib.auth.hashers import make_password, check_password
-from django.contrib.auth import logout as django_logout
+# datetime module is used to display / use local time on webpage
 from datetime import timedelta
 from django.utils import timezone
 from myapp.settings import BASE_DIR
+#clarify api is used to autodetect and categorise images
 from clarifai.rest import ClarifaiApp
 from keys import clarify_api_key
+# sendgrid api is used to send automated emails to users
 import sendgrid
 from keys import sendgrid_api_key
 from imgurpython import ImgurClient
+# imgr api is used to save images on server / cloud which provides us the url required
 from sendgrid.helpers.mail import *
-from django.contrib.auth.decorators import login_required
+
 
 
 
@@ -101,6 +107,7 @@ def post_view(request):
 
                 client = ImgurClient('f7e1fe53d2e71e7','4f87a455291c79ff1caec48add2c3c4222116ef0' )
                 post.image_url = client.upload_from_path(path,anon=True)['link']
+                #saving to DB
                 post.save()
 
                 return redirect('/Feeds/')
@@ -215,6 +222,7 @@ def logout_view(request):
     response.delete_cookie(key='session_token')
     return response
 
+#for validating the session
 def check_validation(request):
     if request.COOKIES.get('session_token'):
         session = SessionToken.objects.filter(session_token=request.COOKIES.get('session_token')).first()

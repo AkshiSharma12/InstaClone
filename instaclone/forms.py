@@ -1,8 +1,9 @@
+# to make a database driven app we need to make forms
 from django import forms
 from models import UserModel, PostModel, LikeModel,CommentModel,CategoryModel
 
 
-
+# forms are created using classes which consists of fields that are to be displayed in web pages
 class SignUpForm(forms.ModelForm):
     class Meta:
         model = UserModel
