@@ -1,5 +1,5 @@
 from django import forms
-from models import UserModel, PostModel, LikeModel,CommentModel
+from models import UserModel, PostModel, LikeModel,CommentModel,CategoryModel
 
 
 
@@ -17,6 +17,12 @@ class PostForm(forms.ModelForm):
     class Meta:
         model = PostModel
         fields = ['image','caption']
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = CategoryModel
+        fields = ['category']
+
 
 class LikeForm(forms.ModelForm):
     class Meta:

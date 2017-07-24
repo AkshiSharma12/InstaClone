@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-from __future__ import unicode_literals
 from django.shortcuts import render, redirect
 from forms import SignUpForm, LoginForm, PostForm, LikeForm, CommentForm
-from models import UserModel, SessionToken, PostModel, LikeModel, CommentModel
+from models import UserModel, SessionToken, PostModel, LikeModel, CommentModel,CategoryModel
 from django.contrib.auth.hashers import make_password, check_password
+from django.contrib.auth import logout as django_logout
 from datetime import timedelta
 from django.utils import timezone
 from myapp.settings import BASE_DIR
@@ -12,6 +13,10 @@ import sendgrid
 from keys import sendgrid_api_key
 from imgurpython import ImgurClient
 from sendgrid.helpers.mail import *
+from django.contrib.auth.decorators import login_required
+
+
+
 
 
 def signup_view(request):
@@ -90,11 +95,22 @@ def post_view(request):
                 app = ClarifaiApp(api_key=clarify_api_key)
                 model = app.models.get("General-v1.3")
                 response = model.predict_by_url(url=post.image_url)
-                category = response["outputs"][0]["data"]["concepts"][0]["name"]
-                post.category = category
-                post.save()
-
-                return redirect('/Feeds/')
+                if response["status"]["code"] == 10000:
+                    if response["outputs"]:
+                         if response["outputs"][0]["data"]:
+                             if response["outputs"][0]["data"]["concepts"]:
+                                 for index in range(0,len(response["outputs"][0]["data"]["concepts"])):
+                                     category = CategoryModel(post=post,category_text=response["outputs"][0]["data"]["concepts"][0]["name"])
+                                     category.save()
+                             else:
+                                 print "No concepts List Error"
+                         else:
+                             print "No Data List Error"
+                    else:
+                         print "No Outputs List Error"
+                else:
+                     print "Response Code Error"
+                     return redirect('/Feeds/')
         else:
             form=PostForm()
         return render(request, 'Post.html',{'form':form})
@@ -128,16 +144,16 @@ def like_view(request):
                 existing_like = LikeModel.objects.filter(post_id=post_id, user=user).first()
                 if not existing_like:
                     LikeModel.objects.create(post_id=post_id, user=user)
-                    sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
-                    from_email = Email("akshisharma12@gmail.com")
-                    to_email = Email(form.cleaned_data['email'])
-                    subject = "Like!"
-                    content = Content("text/plain","Your post has a new like.")
-                    mail = Mail(from_email, subject, to_email, content)
-                    response = sg.client.mail.send.post(request_body=mail.get())
-                    print(response.status_code)
-                    print(response.body)
-                    print(response.headers)
+                    # sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
+                    # from_email = Email("akshisharma12@gmail.com")
+                    # to_email = Email(form.cleaned_data['email'])
+                    # subject = "Like!"
+                    # content = Content("text/plain","Your post has a new like.")
+                    # mail = Mail(from_email, subject, to_email, content)
+                    # response = sg.client.mail.send.post(request_body=mail.get())
+                    # print(response.status_code)
+                    # print(response.body)
+                    # print(response.headers)
                 else:
                     existing_like.delete()
 
@@ -156,23 +172,26 @@ def comment_view(request):
             comment_text = form.cleaned_data.get('comment_text')
             comment = CommentModel.objects.create(user=user, post_id=post_id, comment_text=comment_text)
             comment.save()
-            sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
-            from_email = Email("akshisharma12@gmail.com")
-            to_email = Email(form.cleaned_data['email'])
-            subject = "Comment!"
-            content = Content("text/plain", "Your post has a new comment.")
-            mail = Mail(from_email, subject, to_email, content)
-            response = sg.client.mail.send.post(request_body=mail.get())
-            print(response.status_code)
-            print(response.body)
-            print(response.headers)
+            # sg = sendgrid.SendGridAPIClient(apikey=(sendgrid_api_key))
+            # from_email = Email("akshisharma12@gmail.com")
+            # to_email = Email(form.cleaned_data['email'])
+            # subject = "Comment!"
+            # content = Content("text/plain", "Your post has a new comment.")
+            # mail = Mail(from_email, subject, to_email, content)
+            # response = sg.client.mail.send.post(request_body=mail.get())
+            # print(response.status_code)
+            # print(response.body)
+            # print(response.headers)
             return redirect('/Feeds/')
         else:
             return redirect('/Feeds/')
     else:
         return redirect('/Login/')
 
-
+def logout_view(request):
+    django_logout(request)
+    return redirect('/Login/')
+@login_required(login_url='/Login/')
 
 def check_validation(request):
     if request.COOKIES.get('session_token'):

@@ -1,5 +1,5 @@
 {% load staticfiles %}
-
+<!DOCTYPE html>
 
 <html lang="en">
 <head>
@@ -7,7 +7,7 @@
     <title>InstaClone</title>
 </head>
 <body>
-    <form method="post" action="/Post/">
+    <form method="POST" action="/Post/">
         {% csrf_token %}
         <input type="submit" class="btn-default btn" value="Create Post">
     </form>
@@ -53,5 +53,11 @@
         </div>
 
     {% endfor %}
+         <div>
+            <form method="POST" action="/Logout/">
+                {% csrf_token %}
+                <input type="submit" class="btn-default btn" value="Logout">
+            </form>
+        </div>
 </body>
 </html>

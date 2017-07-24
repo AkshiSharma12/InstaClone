@@ -28,7 +28,6 @@ class PostModel(models.Model):
     image = models.FileField(upload_to='user_images')
     image_url = models.CharField(max_length=255)
     caption = models.CharField(max_length=240)
-    category = models.CharField(max_length=255)
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)
     has_liked = False
@@ -41,6 +40,8 @@ class PostModel(models.Model):
     def comments(self):
         return CommentModel.objects.filter(post=self).order_by('created_on')
 
+class CategoryModel(models.Model):
+    category=models.CharField(max_length=255)
 
 class LikeModel(models.Model):
     user = models.ForeignKey(UserModel)
